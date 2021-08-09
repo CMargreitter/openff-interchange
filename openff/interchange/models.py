@@ -8,6 +8,7 @@ from typing_extensions import Literal
 from openff.interchange.types import custom_quantity_encoder, json_loader
 
 MY_VAR = ["list", "of", "things", "black", "will", "fix"]
+MY_OTHER_VAR = [1, 0]
 
 
 class DefaultModel(BaseModel):
