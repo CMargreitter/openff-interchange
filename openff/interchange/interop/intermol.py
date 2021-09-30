@@ -46,6 +46,7 @@ def from_intermol_system(intermol_system: System) -> Interchange:
     bond_handler = BaseBondHandler()
     angle_handler = BaseAngleHandler()
     proper_handler = BaseProperTorsionHandler()
+    improper_handler = BaseProperTorsionHandler()
 
     # TODO: Store atomtypes on a minimal topology, not as a list
     atomtypes: List = [atom.atomtype[0] for atom in intermol_system.atoms]
@@ -152,6 +153,11 @@ def from_intermol_system(intermol_system: System) -> Interchange:
 
         for dihedral_force in molecule_type.dihedral_forces:
 
+            if dihedral_force.improper:
+                handler = improper_handler
+            else:
+                handler = proper_handler
+
             if type(dihedral_force) == TrigDihedral:
                 proper_dihedral_parameters = convert_dihedral_from_trig_to_proper(
                     {
@@ -191,7 +197,7 @@ def from_intermol_system(intermol_system: System) -> Interchange:
                     key.mult += 1  # type: ignore[operator]
                     ensure_unique_key(handler, key)
 
-            ensure_unique_key(proper_handler, topology_key)
+            ensure_unique_key(handler, topology_key)
 
             potential_key = PotentialKey(
                 id=(
@@ -202,9 +208,9 @@ def from_intermol_system(intermol_system: System) -> Interchange:
                 associated_handler="ProperTorsions",
             )
 
-            proper_handler.slot_map[topology_key] = potential_key
+            handler.slot_map[topology_key] = potential_key
 
-            if potential_key not in proper_handler.potentials:
+            if potential_key not in handler.potentials:
 
                 potential = Potential(
                     parameters={
@@ -215,13 +221,14 @@ def from_intermol_system(intermol_system: System) -> Interchange:
                     }
                 )
 
-                proper_handler.potentials[potential_key] = potential
+                handler.potentials[potential_key] = potential
 
     interchange.handlers["vdW"] = vdw_handler
     interchange.handlers["Electrostatics"] = electrostatics_handler
     interchange.handlers["Bonds"] = bond_handler
     interchange.handlers["Angles"] = angle_handler
     interchange.handlers["ProperTorsions"] = proper_handler
+    interchange.handlers["ImproperTorsions"] = improper_handler
 
     interchange.topology = _OFFBioTop(mdtop=topology)
 

@@ -71,16 +71,35 @@ class TestGROMACSGROFile(_BaseTest):
 
 @needs_gmx
 class TestGROMACS(_BaseTest):
+    def _copy_nonbonded_settings(self, reference, target):
+        for attr_name in [
+            "method",
+            "cutoff",
+            "scale_14",
+            "type",
+            "expression",
+            "mixing_rule",
+            "switch_width",
+        ]:
+            if hasattr(target["vdW"], attr_name):
+                setattr(target["vdW"], attr_name, getattr(reference["vdW"], attr_name))
+            if hasattr(target["Electrostatics"], attr_name):
+                setattr(
+                    target["Electrostatics"],
+                    attr_name,
+                    getattr(reference["Electrostatics"], attr_name),
+                )
+
     @pytest.mark.parametrize(
         "smiles",
         [
             "C",
             "O=C=O",  # Adds unconstrained bonds without torsion(s)
             "CC",  # Adds a proper torsion term(s)
-            # "C=O",  # Simplest molecule with any improper torsion
+            "C=O",  # Simplest molecule with any improper torsion
             "OC=O",  # Simplest molecule with a multi-term torsion
-            # "CCOC",  # This hits t86, which has a non-1.0 idivf
-            # "C1COC(=O)O1",  # This adds an improper, i2
+            "CCOC",  # This hits t86, which has a non-1.0 idivf
+            "C1COC(=O)O1",  # This adds an improper, i2
         ],
     )
     def test_simple_roundtrip(self, smiles):
@@ -99,13 +118,18 @@ class TestGROMACS(_BaseTest):
 
         converted = from_top("out.top", "out.gro")
 
+        self._copy_nonbonded_settings(out, converted)
+
         assert np.allclose(out.positions, converted.positions)
         assert np.allclose(out.box, converted.box)
+
         get_gromacs_energies(out).compare(
             get_gromacs_energies(converted),
             custom_tolerances={
                 "Bond": 0.002 * molecule.n_bonds * unit.kilojoule / unit.mol,
+                "vdW": 0.05 * unit.kilojoule / unit.mol,
                 "Electrostatics": 0.05 * unit.kilojoule / unit.mol,
+                "Torsion": 1e-4 * unit.kilojoule / unit.mol,
             },
         )
 

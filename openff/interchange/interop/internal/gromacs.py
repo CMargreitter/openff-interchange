@@ -366,7 +366,6 @@ def _write_atomtypes_lj(
                 epsilon,
             )
         )
-        top_file.write("\n")
 
     for virtual_site_key in virtual_site_map:
         atom_type = "VS"
@@ -905,7 +904,7 @@ def _write_dihedrals(top_file: IO, openff_sys: "Interchange"):
                     k = params["k"].to(unit.Unit("kilojoule / mol")).magnitude
                     periodicity = int(params["periodicity"])
                     phase = params["phase"].to(unit.degree).magnitude
-                    idivf = int(params["idivf"])
+                    idivf = int(params["idivf"]) if "idivf" in params else 1
                     top_file.write(
                         "{:7d} {:7d} {:7d} {:7d} {:6d} {:.16g} {:.16g} {:.16g}\n".format(
                             indices[0] + 1,
