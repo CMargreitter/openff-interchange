@@ -18,6 +18,7 @@ from openff.toolkit.typing.engines.smirnoff.parameters import (
     UnassignedValenceParameterException,
     VirtualSiteHandler,
 )
+from openff.toolkit.utils import GLOBAL_TOOLKIT_REGISTRY
 from openff.units import unit
 from openff.utilities.testing import skip_if_missing
 from pydantic import ValidationError
@@ -77,12 +78,14 @@ class TestSMIRNOFFPotentialHandler(_BaseTest):
             SMIRNOFFAngleHandler._from_toolkit(
                 parameter_handler=dummy_handler,
                 topology=Topology(),
+                toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
             )
 
         with pytest.raises(InvalidParameterHandlerError):
             DummySMIRNOFFHandler._from_toolkit(
                 parameter_handler=angle_Handler,
                 topology=Topology(),
+                toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
             )
 
 
@@ -104,6 +107,7 @@ class TestSMIRNOFFHandlers(_BaseTest):
         bond_potentials = SMIRNOFFBondHandler._from_toolkit(
             parameter_handler=forcefield["Bonds"],
             topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         top_key = TopologyKey(atom_indices=(0, 1))
@@ -130,6 +134,7 @@ class TestSMIRNOFFHandlers(_BaseTest):
         angle_potentials = SMIRNOFFAngleHandler._from_toolkit(
             parameter_handler=forcefield["Angles"],
             topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         top_key = TopologyKey(atom_indices=(0, 1, 2))
@@ -182,7 +187,9 @@ class TestSMIRNOFFHandlers(_BaseTest):
         ]
 
         electrostatics_handler = SMIRNOFFElectrostaticsHandler._from_toolkit(
-            parameter_handlers, top
+            parameter_handlers,
+            top,
+            GLOBAL_TOOLKIT_REGISTRY,
         )
         np.testing.assert_allclose(
             [charge.m_as(unit.e) for charge in electrostatics_handler.charges.values()],
@@ -207,7 +214,9 @@ class TestSMIRNOFFHandlers(_BaseTest):
         ]
 
         electrostatics_handler = SMIRNOFFElectrostaticsHandler._from_toolkit(
-            parameter_handlers, top
+            parameter_handlers,
+            top,
+            GLOBAL_TOOLKIT_REGISTRY,
         )
 
         np.testing.assert_allclose(
@@ -240,7 +249,9 @@ class TestSMIRNOFFHandlers(_BaseTest):
         ]
 
         electrostatics_handler = SMIRNOFFElectrostaticsHandler._from_toolkit(
-            parameter_handlers, top
+            parameter_handlers,
+            top,
+            GLOBAL_TOOLKIT_REGISTRY,
         )
 
         # AM1-Mulliken charges are [-0.168,  0.168], increments are [0.1, -0.1],
@@ -287,7 +298,9 @@ class TestSMIRNOFFHandlers(_BaseTest):
 
         out = Interchange.from_smirnoff(force_field=parsley, topology=mol.to_topology())
         out["Electrostatics"]._from_toolkit_virtual_sites(
-            parameter_handler=parsley["VirtualSites"], topology=mol.to_topology()
+            parameter_handler=parsley["VirtualSites"],
+            topology=mol.to_topology(),
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         via_toolkit = parsley.create_openmm_system(mol.to_topology())
@@ -387,6 +400,7 @@ class TestConstraints:
                 val for val in [bond_handler, constraint_handler] if val is not None
             ],
             topology=topology,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert len(constraints.slot_map) == n_constraints
@@ -443,10 +457,14 @@ class TestBondOrderInterpolation(_BaseTest):
         )
 
         bonds = SMIRNOFFBondHandler._from_toolkit(
-            parameter_handler=forcefield["Bonds"], topology=top
+            parameter_handler=forcefield["Bonds"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
         bonds_mod = SMIRNOFFBondHandler._from_toolkit(
-            parameter_handler=forcefield["Bonds"], topology=mod_top
+            parameter_handler=forcefield["Bonds"],
+            topology=mod_top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         for pot_key1, pot_key2 in zip(
@@ -478,10 +496,14 @@ class TestBondOrderInterpolation(_BaseTest):
         )
 
         bonds = SMIRNOFFBondHandler._from_toolkit(
-            parameter_handler=forcefield["Bonds"], topology=top
+            parameter_handler=forcefield["Bonds"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
         bonds_mod = SMIRNOFFBondHandler._from_toolkit(
-            parameter_handler=forcefield["Bonds"], topology=mod_top
+            parameter_handler=forcefield["Bonds"],
+            topology=mod_top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         for key1, key2 in zip(bonds.potentials, bonds_mod.potentials):
@@ -524,16 +546,19 @@ class TestMatrixRepresentations(_BaseTest):
             handler = SMIRNOFFBondHandler._from_toolkit(
                 parameter_handler=parsley["Bonds"],
                 topology=ethanol_top,
+                toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
             )
         elif handler_name == "Angles":
             handler = SMIRNOFFAngleHandler._from_toolkit(
                 parameter_handler=parsley[handler_name],
                 topology=ethanol_top,
+                toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
             )
         elif handler_name == "vdW":
             handler = SMIRNOFFvdWHandler._from_toolkit(
                 parameter_handler=parsley[handler_name],
                 topology=ethanol_top,
+                toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
             )
         else:
             raise NotImplementedError()
@@ -569,6 +594,7 @@ class TestMatrixRepresentations(_BaseTest):
         bond_handler = SMIRNOFFBondHandler._from_toolkit(
             parameter_handler=parsley["Bonds"],
             topology=ethanol_top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         original = bond_handler.get_force_field_parameters()
@@ -654,7 +680,9 @@ class TestSMIRNOFFVirtualSites:
         vdw = out["vdW"]
 
         vdw._from_toolkit_virtual_sites(
-            parameter_handler=forcefield["VirtualSites"], topology=top
+            parameter_handler=forcefield["VirtualSites"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert _get_n_virtual_sites(vdw) == _get_n_virtual_sites_toolkit(
@@ -665,7 +693,9 @@ class TestSMIRNOFFVirtualSites:
         coul = out["Electrostatics"]
 
         coul._from_toolkit_virtual_sites(
-            parameter_handler=forcefield["VirtualSites"], topology=top
+            parameter_handler=forcefield["VirtualSites"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert _get_n_virtual_sites(coul) == _get_n_virtual_sites_toolkit(
@@ -698,11 +728,15 @@ class TestSMIRNOFFVirtualSites:
         )
 
         vdw = SMIRNOFFvdWHandler._from_toolkit(
-            parameter_handler=forcefield["vdW"], topology=top
+            parameter_handler=forcefield["vdW"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         vdw._from_toolkit_virtual_sites(
-            parameter_handler=forcefield["VirtualSites"], topology=top
+            parameter_handler=forcefield["VirtualSites"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert _get_n_virtual_sites(vdw) == _get_n_virtual_sites_toolkit(
@@ -718,11 +752,15 @@ class TestSMIRNOFFVirtualSites:
         tip4p = ForceField(get_test_file_path("tip4p.offxml"))
 
         vdw = SMIRNOFFvdWHandler._from_toolkit(
-            parameter_handler=tip4p["vdW"], topology=top
+            parameter_handler=tip4p["vdW"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         vdw._from_toolkit_virtual_sites(
-            parameter_handler=tip4p["VirtualSites"], topology=top
+            parameter_handler=tip4p["VirtualSites"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert _get_n_virtual_sites(vdw) == _get_n_virtual_sites_toolkit(
@@ -731,7 +769,9 @@ class TestSMIRNOFFVirtualSites:
         )
 
         virtual_site_handler = SMIRNOFFVirtualSiteHandler._from_toolkit(
-            parameter_handler=tip4p["VirtualSites"], topology=top
+            parameter_handler=tip4p["VirtualSites"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert len(virtual_site_handler.slot_map) == 1
@@ -745,11 +785,15 @@ class TestSMIRNOFFVirtualSites:
         tip5p = ForceField(get_test_file_path("tip5p.offxml"))
 
         vdw = SMIRNOFFvdWHandler._from_toolkit(
-            parameter_handler=tip5p["vdW"], topology=top
+            parameter_handler=tip5p["vdW"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         vdw._from_toolkit_virtual_sites(
-            parameter_handler=tip5p["VirtualSites"], topology=top
+            parameter_handler=tip5p["VirtualSites"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert _get_n_virtual_sites(vdw) == _get_n_virtual_sites_toolkit(
@@ -758,7 +802,9 @@ class TestSMIRNOFFVirtualSites:
         )
 
         virtual_site_handler = SMIRNOFFVirtualSiteHandler._from_toolkit(
-            parameter_handler=tip5p["VirtualSites"], topology=top
+            parameter_handler=tip5p["VirtualSites"],
+            topology=top,
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         assert len(virtual_site_handler.slot_map) == 2

@@ -6,6 +6,7 @@ import openmm
 import pytest
 from openff.toolkit.topology import Molecule, Topology
 from openff.toolkit.typing.engines.smirnoff import ForceField, VirtualSiteHandler
+from openff.toolkit.utils import GLOBAL_TOOLKIT_REGISTRY
 from openff.units import unit
 from openff.utilities.testing import skip_if_missing
 from openmm import unit as openmm_unit
@@ -307,14 +308,17 @@ class TestGROMACSVirtualSites(_BaseTest):
         out.handlers["VirtualSites"] = SMIRNOFFVirtualSiteHandler._from_toolkit(
             parameter_handler=parsley_with_sigma_hole["VirtualSites"],
             topology=mol.to_topology(),
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
         out["vdW"]._from_toolkit_virtual_sites(
             parameter_handler=parsley_with_sigma_hole["VirtualSites"],
             topology=mol.to_topology(),
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
         out["Electrostatics"]._from_toolkit_virtual_sites(
             parameter_handler=parsley_with_sigma_hole["VirtualSites"],
             topology=mol.to_topology(),
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         # TODO: Sanity-check reported energies
@@ -342,14 +346,17 @@ class TestGROMACSVirtualSites(_BaseTest):
         out.handlers["VirtualSites"] = SMIRNOFFVirtualSiteHandler._from_toolkit(
             parameter_handler=parsley_with_monovalent_lone_pair["VirtualSites"],
             topology=mol.to_topology(),
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
         out["vdW"]._from_toolkit_virtual_sites(
             parameter_handler=parsley_with_monovalent_lone_pair["VirtualSites"],
             topology=mol.to_topology(),
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
         out["Electrostatics"]._from_toolkit_virtual_sites(
             parameter_handler=parsley_with_monovalent_lone_pair["VirtualSites"],
             topology=mol.to_topology(),
+            toolkit_registry=GLOBAL_TOOLKIT_REGISTRY,
         )
 
         # TODO: Sanity-check reported energies

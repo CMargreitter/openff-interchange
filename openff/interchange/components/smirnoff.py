@@ -9,7 +9,6 @@ from typing import (
     DefaultDict,
     Dict,
     List,
-    Optional,
     Tuple,
     Type,
     TypeVar,
@@ -140,7 +139,7 @@ class SMIRNOFFPotentialHandler(PotentialHandler, abc.ABC):
         cls: Type[T],
         parameter_handler: TP,
         topology: "Topology",
-        toolkit_registry: Optional[ToolkitRegistry] = None,
+        toolkit_registry: ToolkitRegistry,
     ) -> T:
         """
         Create a SMIRNOFFPotentialHandler from toolkit data.
@@ -280,7 +279,7 @@ class SMIRNOFFBondHandler(SMIRNOFFPotentialHandler):
         cls: Type[T],
         parameter_handler: "BondHandler",
         topology: "Topology",
-        toolkit_registry: Optional[ToolkitRegistry] = None,
+        toolkit_registry: ToolkitRegistry,
     ) -> T:
         """
         Create a SMIRNOFFBondHandler from toolkit data.
@@ -309,9 +308,12 @@ class SMIRNOFFBondHandler(SMIRNOFFPotentialHandler):
             for molecule in topology.molecules:
                 # TODO: expose conformer generation and fractional bond order assigment
                 # knobs to user via API
-                molecule.generate_conformers(n_conformers=1)
+                molecule.generate_conformers(
+                    n_conformers=1, toolkit_registry=toolkit_registry
+                )
                 molecule.assign_fractional_bond_orders(
                     bond_order_model=handler.fractional_bond_order_method.lower(),  # type: ignore[attr-defined]
+                    toolkit_registry=toolkit_registry,
                 )
 
         handler.store_matches(parameter_handler=parameter_handler, topology=topology)
@@ -344,7 +346,7 @@ class SMIRNOFFConstraintHandler(SMIRNOFFPotentialHandler):
         cls: Type[T],
         parameter_handler: List,
         topology: "Topology",
-        toolkit_registry: Optional[ToolkitRegistry] = None,
+        toolkit_registry: ToolkitRegistry,
     ) -> T:
         """
         Create a SMIRNOFFPotentialHandler from toolkit data.
@@ -361,7 +363,9 @@ class SMIRNOFFConstraintHandler(SMIRNOFFPotentialHandler):
 
         handler = cls()
         handler.store_constraints(  # type: ignore[attr-defined]
-            parameter_handlers=parameter_handlers, topology=topology
+            parameter_handlers=parameter_handlers,
+            topology=topology,
+            toolkit_registry=toolkit_registry,
         )
 
         return handler
@@ -370,6 +374,7 @@ class SMIRNOFFConstraintHandler(SMIRNOFFPotentialHandler):
         self,
         parameter_handlers: Any,
         topology: "_OFFBioTop",
+        toolkit_registry: ToolkitRegistry,
     ) -> None:
         """Store constraints."""
         if self.slot_map:
@@ -385,6 +390,7 @@ class SMIRNOFFConstraintHandler(SMIRNOFFPotentialHandler):
             bonds = SMIRNOFFBondHandler._from_toolkit(
                 parameter_handler=bond_handler,
                 topology=topology,
+                toolkit_registry=toolkit_registry,
             )
         else:
             bond_handler = None
@@ -751,7 +757,7 @@ class SMIRNOFFvdWHandler(_SMIRNOFFNonbondedHandler):
         cls: Type[T],
         parameter_handler: "vdWHandler",
         topology: "Topology",
-        toolkit_registry: Optional[ToolkitRegistry] = None,
+        toolkit_registry: ToolkitRegistry,
     ) -> T:
         """
         Create a SMIRNOFFvdWHandler from toolkit data.
@@ -794,7 +800,7 @@ class SMIRNOFFvdWHandler(_SMIRNOFFNonbondedHandler):
         self,
         parameter_handler: "VirtualSiteHandler",
         topology: "Topology",
-        toolkit_registry: Optional[ToolkitRegistry] = None,
+        toolkit_registry: ToolkitRegistry,
     ):
         # TODO: Merge this logic into _from_toolkit
 
@@ -947,7 +953,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
         cls: Type[T],
         parameter_handler: Any,
         topology: "Topology",
-        toolkit_registry: Optional[ToolkitRegistry] = None,
+        toolkit_registry: ToolkitRegistry,
     ) -> T:
         """
         Create a SMIRNOFFElectrostaticsHandler from toolkit data.
@@ -971,7 +977,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
             method=toolkit_handler_with_metadata.method.lower(),
         )
 
-        handler.store_matches(parameter_handlers, topology)
+        handler.store_matches(parameter_handlers, topology, toolkit_registry)
 
         return handler
 
@@ -979,7 +985,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
         self,
         parameter_handler: "VirtualSiteHandler",
         topology: "Topology",
-        toolkit_registry: Optional[ToolkitRegistry] = None,
+        toolkit_registry: ToolkitRegistry,
     ):
         # TODO: Merge this logic into _from_toolkit
 
@@ -1050,10 +1056,12 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
 
     @classmethod
     @functools.lru_cache(None)
-    def _compute_partial_charges(cls, molecule: Molecule, method: str) -> unit.Quantity:
+    def _compute_partial_charges(
+        cls, molecule: Molecule, method: str, toolkit_registry: ToolkitRegistry
+    ) -> unit.Quantity:
         """Call out to the toolkit's toolkit wrappers to generate partial charges."""
         molecule = copy.deepcopy(molecule)
-        molecule.assign_partial_charges(method)
+        molecule.assign_partial_charges(method, toolkit_registry=toolkit_registry)
 
         return molecule.partial_charges
 
@@ -1162,6 +1170,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
         cls,
         parameter_handler: Union["ToolkitAM1BCCHandler", ChargeIncrementModelHandler],
         unique_molecule: Molecule,
+        toolkit_registry: ToolkitRegistry,
     ) -> Tuple[Dict[TopologyKey, PotentialKey], Dict[PotentialKey, Potential]]:
         """Construct a slot and potential map for a charge model based parameter handler."""
         unique_molecule = copy.deepcopy(unique_molecule)
@@ -1171,7 +1180,9 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
 
         method = getattr(parameter_handler, "partial_charge_method", "am1bcc")
 
-        partial_charges = cls._compute_partial_charges(unique_molecule, method=method)
+        partial_charges = cls._compute_partial_charges(
+            unique_molecule, method=method, toolkit_registry=toolkit_registry
+        )
 
         matches = {}
         potentials = {}
@@ -1192,6 +1203,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
         cls,
         parameter_handlers: Dict[str, "ElectrostaticsHandlerType"],
         unique_molecule: Molecule,
+        toolkit_registry: ToolkitRegistry,
     ) -> Tuple[Dict[TopologyKey, PotentialKey], Dict[PotentialKey, Potential]]:
         """
         Construct a slot and potential map for a particular reference molecule and set of parameter handlers.
@@ -1224,6 +1236,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
                 am1_matches, am1_potentials = cls._find_am1_matches(
                     parameter_handler,
                     unique_molecule,
+                    toolkit_registry=toolkit_registry,
                 )
 
             if slot_matches is None and am1_matches is None:
@@ -1284,12 +1297,13 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
 
         return matches, potentials
 
-    def store_matches(
+    def store_matches(  # type: ignore[override]
         self,
         parameter_handler: Union[
             "ElectrostaticsHandlerType", List["ElectrostaticsHandlerType"]
         ],
         topology: Union["Topology", "_OFFBioTop"],
+        toolkit_registry: ToolkitRegistry,
     ) -> None:
         """
         Populate self.slot_map with key-val pairs of slots and unique potential identifiers.
@@ -1320,6 +1334,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
             matches, potentials = self._find_reference_matches(
                 parameter_handlers,
                 unique_molecule,
+                toolkit_registry=toolkit_registry,
             )
 
             match_mults = defaultdict(set)

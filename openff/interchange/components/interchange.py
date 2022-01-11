@@ -179,6 +179,11 @@ class Interchange(DefaultModel):
 
         cls._check_supported_handlers(force_field)
 
+        if toolkit_registry is None:
+            from openff.toolkit.utils import GLOBAL_TOOLKIT_REGISTRY
+
+            toolkit_registry: ToolkitRegistry = GLOBAL_TOOLKIT_REGISTRY  # type: ignore[no-redef]
+
         if isinstance(topology, Topology):
             # Work around https://github.com/openforcefield/openff-toolkit/issues/946#issuecomment-941143659
             box_vectors = topology.box_vectors
@@ -228,6 +233,7 @@ class Interchange(DefaultModel):
                     parameter_handler=force_field["Bonds"],
                     topology=topology,
                     # constraint_handler=constraint_handler,
+                    toolkit_registry=toolkit_registry,
                 )
                 sys_out.handlers.update({"Bonds": potential_handler})
             elif potential_handler_type == SMIRNOFFConstraintHandler:
@@ -244,6 +250,7 @@ class Interchange(DefaultModel):
                         if val is not None
                     ],
                     topology=topology,
+                    toolkit_registry=toolkit_registry,
                 )
                 sys_out.handlers.update({"Constraints": constraints})
                 continue
@@ -251,12 +258,14 @@ class Interchange(DefaultModel):
                 potential_handler = potential_handler_type._from_toolkit(  # type: ignore
                     parameter_handler=parameter_handlers,
                     topology=topology,
+                    toolkit_registry=toolkit_registry,
                 )
             else:
                 potential_handler_type.check_supported_parameters(parameter_handlers[0])
                 potential_handler = potential_handler_type._from_toolkit(  # type: ignore
                     parameter_handler=parameter_handlers[0],
                     topology=topology,
+                    toolkit_registry=toolkit_registry,
                 )
             sys_out.handlers.update({potential_handler.type: potential_handler})
 
