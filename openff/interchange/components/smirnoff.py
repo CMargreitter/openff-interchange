@@ -9,6 +9,7 @@ from typing import (
     DefaultDict,
     Dict,
     List,
+    Optional,
     Tuple,
     Type,
     TypeVar,
@@ -33,6 +34,7 @@ from openff.toolkit.typing.engines.smirnoff.parameters import (
     VirtualSiteHandler,
     vdWHandler,
 )
+from openff.toolkit.utils import ToolkitRegistry
 from openff.units import unit
 from openmm import unit as openmm_unit
 from pydantic import Field
@@ -138,6 +140,7 @@ class SMIRNOFFPotentialHandler(PotentialHandler, abc.ABC):
         cls: Type[T],
         parameter_handler: TP,
         topology: "Topology",
+        toolkit_registry: Optional[ToolkitRegistry] = None,
     ) -> T:
         """
         Create a SMIRNOFFPotentialHandler from toolkit data.
@@ -277,6 +280,7 @@ class SMIRNOFFBondHandler(SMIRNOFFPotentialHandler):
         cls: Type[T],
         parameter_handler: "BondHandler",
         topology: "Topology",
+        toolkit_registry: Optional[ToolkitRegistry] = None,
     ) -> T:
         """
         Create a SMIRNOFFBondHandler from toolkit data.
@@ -340,6 +344,7 @@ class SMIRNOFFConstraintHandler(SMIRNOFFPotentialHandler):
         cls: Type[T],
         parameter_handler: List,
         topology: "Topology",
+        toolkit_registry: Optional[ToolkitRegistry] = None,
     ) -> T:
         """
         Create a SMIRNOFFPotentialHandler from toolkit data.
@@ -746,6 +751,7 @@ class SMIRNOFFvdWHandler(_SMIRNOFFNonbondedHandler):
         cls: Type[T],
         parameter_handler: "vdWHandler",
         topology: "Topology",
+        toolkit_registry: Optional[ToolkitRegistry] = None,
     ) -> T:
         """
         Create a SMIRNOFFvdWHandler from toolkit data.
@@ -788,6 +794,7 @@ class SMIRNOFFvdWHandler(_SMIRNOFFNonbondedHandler):
         self,
         parameter_handler: "VirtualSiteHandler",
         topology: "Topology",
+        toolkit_registry: Optional[ToolkitRegistry] = None,
     ):
         # TODO: Merge this logic into _from_toolkit
 
@@ -940,6 +947,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
         cls: Type[T],
         parameter_handler: Any,
         topology: "Topology",
+        toolkit_registry: Optional[ToolkitRegistry] = None,
     ) -> T:
         """
         Create a SMIRNOFFElectrostaticsHandler from toolkit data.
@@ -971,6 +979,7 @@ class SMIRNOFFElectrostaticsHandler(_SMIRNOFFNonbondedHandler):
         self,
         parameter_handler: "VirtualSiteHandler",
         topology: "Topology",
+        toolkit_registry: Optional[ToolkitRegistry] = None,
     ):
         # TODO: Merge this logic into _from_toolkit
 

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 import numpy as np
 from openff.toolkit.topology.topology import Topology
 from openff.toolkit.typing.engines.smirnoff import ForceField
+from openff.toolkit.utils import ToolkitRegistry
 from openff.utilities.utilities import has_package, requires_package
 from pydantic import Field, validator
 
@@ -138,6 +139,7 @@ class Interchange(DefaultModel):
         cls,
         force_field: ForceField,
         topology: Topology,
+        toolkit_registry: Optional[ToolkitRegistry] = None,
         box=None,
     ) -> "Interchange":
         """
@@ -151,6 +153,8 @@ class Interchange(DefaultModel):
             The topology to parameterize.
         box
             The box vectors associated with the interchange.
+        toolkit_registry
+            The registry of wrapped cheminformatics toolkits to use during parameterization.
 
         Examples
         --------
